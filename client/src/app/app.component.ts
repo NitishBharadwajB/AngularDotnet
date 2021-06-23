@@ -21,6 +21,7 @@ constructor(private http: HttpClient) {
   getUsers(){
     this.http.get('http://localhost:5000/api/Users').subscribe(response => {
       this.users = response;
+      console.log(this.users);
     },error => {
       console.error(error);
     }
