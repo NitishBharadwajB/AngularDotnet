@@ -10,6 +10,8 @@ using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.EntityFrameworkCore;
 using System.Security.Claims;
+using API.Extensions;
+using Microsoft.AspNetCore.Http;
 
 namespace API.Controllers
 {
@@ -18,11 +20,13 @@ namespace API.Controllers
     {
         private readonly IUserRepository _userRep;
         private readonly IMapper _mapper;
+        private readonly IPhotoService _photoService;
 
-        public UsersController(IUserRepository userRep, IMapper mapper)
+        public UsersController(IUserRepository userRep, IMapper mapper, IPhotoService photoService)
         {
             _mapper = mapper;
             _userRep = userRep;
+            _photoService = photoService;
         }
 
         [HttpGet]
@@ -39,7 +43,7 @@ namespace API.Controllers
         //     return await _userRep.GetUserByIdAsync(id);
         // }
 
-        [HttpGet("{username}")]
+        [HttpGet("{username}", Name ="GetUser")]
         public async Task<ActionResult<MemberDto>> GetUserByUserName(string username)
         {
             return  await _userRep.GetMemberAsync(username);
@@ -48,9 +52,7 @@ namespace API.Controllers
         [HttpPut]
         public async Task<ActionResult> UpdateUser(MemberUpdateDto memberUpdateDto)
         {
-            var username = User.FindFirst(ClaimTypes.NameIdentifier)?.Value;
-
-            var user = await _userRep.GetUserByName(username);
+            var user = await _userRep.GetUserByName(User.GetUserName());
             _mapper.Map(memberUpdateDto, user);
             _userRep.Update(user);
 
@@ -59,5 +61,81 @@ namespace API.Controllers
             return BadRequest("Update Failed");
 
         }
+
+        [HttpPost("add-photo")]
+        public async Task<ActionResult<PhotoDto>> AddPhoto(IFormFile file)
+        {
+            var user = await _userRep.GetUserByName(User.GetUserName());
+
+            var result = await _photoService.AddPhotoAsync(file);
+
+            if(result.Error != null)
+            {
+                return BadRequest(result.Error.Message);
+            }
+
+            var photo = new Photo{
+                Url = result.SecureUrl.AbsoluteUri,
+                PublicId = result.PublicId
+            };
+
+            if(user.Photos.Count == 0)
+            {
+                photo.IsMain = true;
+            }
+            user.Photos.Add(photo);
+
+            if(await _userRep.SaveAllChanges()){
+                //return _mapper.Map<PhotoDto>(photo);
+                return CreatedAtRoute("GetUser", new {username = user.UserName} , _mapper.Map<PhotoDto>(photo));
+            }
+
+            return BadRequest("Problem while Uploading Photos");
+        } 
+
+        [HttpPut("set-main-photo/{photoId}")]
+        public async Task<ActionResult> SetMainPhoto(int photoId)
+        {
+            var user = await _userRep.GetUserByName(User.GetUserName()); 
+
+            var photo = user.Photos.FirstOrDefault(x => x.Id == photoId);
+
+            if(photo.IsMain) return BadRequest("This photo is already the main photo");
+
+            var currentMainPhoto = user.Photos.FirstOrDefault(x => x.IsMain);
+
+            if(currentMainPhoto != null) currentMainPhoto.IsMain = false;
+            photo.IsMain = true;
+
+            if(await _userRep.SaveAllChanges()) return NoContent();
+
+            return BadRequest("Failed to set Main Photo");
+        }
+
+        [HttpDelete("delete-photo/{photoId}")]
+        public async Task<ActionResult> DeletePhoto(int photoId)
+        {
+            var user = await _userRep.GetUserByName(User.GetUserName()); 
+
+            var photo = user.Photos.FirstOrDefault(x => x.Id == photoId);
+
+            if(photo == null) return NotFound();
+
+            if(photo.IsMain) return BadRequest("Could not delete the Main Photo");
+
+            if(photo.PublicId != null){
+                var result = await _photoService.DeletePhoto(photo.PublicId);
+                if(result.Error != null){
+                    return BadRequest(result.Error.Message);
+                }
+            }
+
+            user.Photos.Remove(photo);
+
+            if(await _userRep.SaveAllChanges()) return NoContent();
+
+            return BadRequest("Failed to set Main Photo");
+        }
+
     }
 }

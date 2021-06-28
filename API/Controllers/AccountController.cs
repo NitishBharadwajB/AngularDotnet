@@ -1,3 +1,4 @@
+using System.Linq;
 using System.Security.Cryptography;
 using System.Text;
 using System.Threading.Tasks;
@@ -50,6 +51,7 @@ namespace API.Controllers
         public async Task<ActionResult<UserDto>> Login(LoginDto loginDto)
         {
             var user = await _context.User
+            .Include(p => p.Photos)
             .SingleOrDefaultAsync(x => x.UserName == loginDto.UserName);
 
             if(user == null) return Unauthorized("UserName not available");
@@ -65,7 +67,8 @@ namespace API.Controllers
             return new UserDto
             {
                 UserName = user.UserName,
-                Token = _token.CreateToken(user)
+                Token = _token.CreateToken(user),
+                PhotoUrl = user.Photos.FirstOrDefault(x => x.IsMain)?.Url
             };
 
         }
