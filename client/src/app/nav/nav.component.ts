@@ -15,10 +15,14 @@ export class NavComponent implements OnInit {
 
   public model:any = {};
   public currentUser$: Observable<User>;
+  public user:User;
   constructor(private accountService: AccountService, private router: Router, private toastr: ToastrService) { }
 
   ngOnInit(): void {
     this.currentUser$ = this.accountService.currentUser$;
+    this.currentUser$.subscribe(user => {
+      this.user = user;
+    })
   }
 
   login() {

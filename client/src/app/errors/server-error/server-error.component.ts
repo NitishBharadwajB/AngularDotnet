@@ -11,7 +11,7 @@ export class ServerErrorComponent implements OnInit {
 
   constructor(private route: Router) {
     const navigation = route.getCurrentNavigation();
-    this.error = navigation?.extras?.state?.console.error;
+    this.error = navigation?.extras?.state?.error;
     
    }
 
