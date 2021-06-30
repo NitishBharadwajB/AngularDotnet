@@ -3,6 +3,7 @@ import { Injectable } from '@angular/core';
 import { of } from 'rxjs';
 import { map, take } from 'rxjs/operators';
 import { environment } from 'src/environments/environment';
+import { LikedParams } from '../_models/LikesParams';
 import { Member } from '../_models/member';
 import { PaginatedResult } from '../_models/pagination';
 import { User } from '../_models/User';
@@ -110,8 +111,19 @@ export class MembersService {
   setMainPhoto(photoId: number){
     return this.http.put(this.baseURL + 'users/set-main-photo/' + photoId, {})
   }
+
   deletePhoto(photoId: number){
     return this.http.delete(this.baseURL + 'users/delete-photo/' + photoId)
+  }
+
+  addLike(userName: string){
+    return this.http.post(this.baseURL + 'likes/' + userName , {})
+  }
+  getLikes(likedParams: LikedParams){
+    let params = this.getPaginationHeaders(likedParams.pageNumber,likedParams.pageSize);
+
+    params = params.append('predicate', likedParams.predicate);
+    return this.getPaginatedResult<Partial<Member[]>>(this.baseURL + 'likes', params);
   }
 
 }
