@@ -45,7 +45,7 @@ namespace API.Data
                 UserName = user.UserName,
                 KnownAs = user.KnownAs,
                 PhotoUrl = user.Photos.FirstOrDefault(p => p.IsMain).Url,
-                Id = user.ID,
+                Id = user.Id,
                 Age = user.DateOfBirth.CalculateAge(),
                 City = user.City
             });
@@ -57,7 +57,7 @@ namespace API.Data
         {
             return await _context.User
                         .Include(x => x.LikedUsers)
-                        .FirstOrDefaultAsync(x => x.ID == userId);
+                        .FirstOrDefaultAsync(x => x.Id == userId);
         }
 
         

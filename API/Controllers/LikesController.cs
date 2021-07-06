@@ -33,7 +33,7 @@ namespace API.Controllers
 
             if(sourceUser.UserName == userName) return BadRequest("You cannot like yourdwlf !!!! Atleast not in this app");
 
-             var userLike = await _likesRepository.GetUserLike(sourceUserId, likedUser.ID);
+             var userLike = await _likesRepository.GetUserLike(sourceUserId, likedUser.Id);
 
             // TODO: Unlike option
              if(userLike != null) return BadRequest("User has already been liked");
@@ -41,7 +41,7 @@ namespace API.Controllers
              userLike = new UserLike
              {
                  SourceUserId = sourceUserId,
-                 LikedUserId = likedUser.ID
+                 LikedUserId = likedUser.Id
              };
 
              sourceUser.LikedUsers.Add(userLike);
